@@ -14,7 +14,7 @@ export function loadConfig(): Config {
 
   return {
     geminiApiKey,
-    agentPath: process.env.AGENT_PATH || "gemini",
+    agentPath: process.env.AGENT_PATH || "gemini --experimental-acp",
     useVertexAI: process.env.GOOGLE_GENAI_USE_VERTEXAI === "true",
   };
 }
