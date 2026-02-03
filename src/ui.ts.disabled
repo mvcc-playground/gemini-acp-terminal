@@ -1,0 +1,198 @@
+import {
+  createCliRenderer,
+  Text,
+  Box,
+  Input,
+  ScrollBox,
+  Markdown,
+} from "@opentui/core";
+import chalk from "chalk";
+import type { AgentResponse } from "./client";
+
+export interface UIMessage {
+  role: "user" | "agent" | "system";
+  content: string;
+}
+
+export class TerminalUI {
+  private renderer: any;
+  private messages: UIMessage[] = [];
+  private currentInput = "";
+  private onSubmit?: (message: string) => void;
+  private isWaitingResponse = false;
+  private streamingContent = "";
+
+  async init() {
+    this.renderer = await createCliRenderer({
+      exitOnCtrlC: true,
+    });
+
+    this.render();
+  }
+
+  private render() {
+    this.renderer.root.clear();
+
+    // Header
+    this.renderer.root.add(
+      Box(
+        {
+          borderStyle: "rounded",
+          padding: 1,
+          fg: "#00BFFF",
+          width: "100%",
+        },
+        Text({
+          content: "🤖 ACP Terminal Client - Gemini AI",
+          fg: "#FFFF00",
+          bold: true,
+        })
+      )
+    );
+
+    // Messages area
+    const messagesBox = Box(
+      {
+        flexDirection: "column",
+        gap: 1,
+        padding: 1,
+        height: "80%",
+        width: "100%",
+      },
+      ...this.messages.map((msg) => this.renderMessage(msg))
+    );
+
+    // Add streaming content if agent is responding
+    if (this.isWaitingResponse && this.streamingContent) {
+      messagesBox.add(
+        Box(
+          { padding: 1, borderStyle: "rounded", fg: "#00FF00" },
+          Text({ content: "🤖 Agent:", fg: "#00FF00", bold: true }),
+          Markdown({ content: this.streamingContent })
+        )
+      );
+    }
+
+    this.renderer.root.add(ScrollBox({ height: "80%" }, messagesBox));
+
+    // Input area
+    if (!this.isWaitingResponse) {
+      this.renderer.root.add(
+        Box(
+          {
+            borderStyle: "rounded",
+            padding: 1,
+            fg: "#FFA500",
+            width: "100%",
+          },
+          Text({ content: "💬 Your message: ", fg: "#FFA500" }),
+          Input({
+            value: this.currentInput,
+            placeholder: "Type your message and press Enter...",
+            onSubmit: (value: string) => {
+              if (value.trim() && this.onSubmit) {
+                this.onSubmit(value.trim());
+                this.currentInput = "";
+              }
+            },
+            onChange: (value: string) => {
+              this.currentInput = value;
+            },
+          })
+        )
+      );
+    } else {
+      this.renderer.root.add(
+        Box(
+          {
+            borderStyle: "rounded",
+            padding: 1,
+            fg: "#808080",
+            width: "100%",
+          },
+          Text({ content: "⏳ Waiting for agent response...", fg: "#808080" })
+        )
+      );
+    }
+
+    // Footer
+    this.renderer.root.add(
+      Box(
+        {
+          padding: 1,
+          fg: "#666666",
+          width: "100%",
+        },
+        Text({
+          content: "Ctrl+C to exit | Type 'exit' to quit",
+          fg: "#666666",
+          italic: true,
+        })
+      )
+    );
+  }
+
+  private renderMessage(msg: UIMessage) {
+    const color =
+      msg.role === "user" ? "#00BFFF" : msg.role === "agent" ? "#00FF00" : "#FFA500";
+
+    const icon =
+      msg.role === "user" ? "👤" : msg.role === "agent" ? "🤖" : "ℹ️";
+
+    const label =
+      msg.role === "user" ? "You" : msg.role === "agent" ? "Agent" : "System";
+
+    return Box(
+      { padding: 1, borderStyle: "rounded", fg: color },
+      Text({ content: `${icon} ${label}:`, fg: color, bold: true }),
+      msg.role === "agent"
+        ? Markdown({ content: msg.content })
+        : Text({ content: msg.content })
+    );
+  }
+
+  addMessage(role: "user" | "agent" | "system", content: string) {
+    this.messages.push({ role, content });
+    this.render();
+  }
+
+  startWaiting() {
+    this.isWaitingResponse = true;
+    this.streamingContent = "";
+    this.render();
+  }
+
+  updateStreaming(content: string) {
+    this.streamingContent += content;
+    this.render();
+  }
+
+  finishWaiting() {
+    if (this.streamingContent) {
+      this.addMessage("agent", this.streamingContent);
+    }
+    this.isWaitingResponse = false;
+    this.streamingContent = "";
+    this.render();
+  }
+
+  setOnSubmit(callback: (message: string) => void) {
+    this.onSubmit = callback;
+  }
+
+  showWelcome() {
+    this.addMessage(
+      "system",
+      "Welcome to ACP Terminal Client! Connected to Gemini AI.\nType your message to start chatting."
+    );
+  }
+
+  showError(error: string) {
+    this.addMessage("system", `❌ Error: ${error}`);
+  }
+
+  clear() {
+    this.messages = [];
+    this.render();
+  }
+}

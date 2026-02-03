@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:opentui.com)",
+      "Bash(bun tsc:*)"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "acp-terminal-client",
+  "version": "1.0.0",
+  "description": "Interactive terminal client for Agent Client Protocol with Gemini AI",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch src/index.ts",
+    "setup": "cp .env.example .env && echo 'Created .env file. Please add your GEMINI_API_KEY.'"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@agentclientprotocol/sdk": "^0.13.1",
+    "@google/gemini-cli": "^0.26.0",
+    "@opentui/core": "^0.1.77",
+    "chalk": "^5.6.2",
+    "dotenv": "^17.2.3",
+    "marked-terminal": "^7.3.0"
+  }
+}
