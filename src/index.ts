@@ -3,6 +3,7 @@ import { ACPClient } from "./client";
 import { SessionManager } from "./session";
 import { TerminalUI } from "./ui-simple";
 import { logger } from "./utils/logger";
+import chalk from "chalk";
 
 async function main() {
   logger.info("=== ACP Terminal Client Starting ===");
@@ -20,7 +21,10 @@ async function main() {
 
   await ui.init();
 
-  ui.addMessage("system", `🚀 Initializing ACP connection...\n📝 Logs: ${logger.getLogFile()}`);
+  console.log(
+    chalk.yellow.dim(`│ 🚀 Initializing ACP connection...`)
+  );
+  console.log(chalk.gray.dim(`│ 📝 Logs: ${logger.getLogFile()}`));
   logger.info("UI initialized");
 
   try {
@@ -31,20 +35,21 @@ async function main() {
       if (response.type === "text") {
         ui.updateStreaming(response.content);
       } else if (response.type === "tool_call") {
-        ui.updateStreaming(`\n\n${response.content}\n\n`);
+        // Skip showing tool calls in the UI for cleaner output
+        // They're still logged to file
       } else if (response.type === "error") {
         ui.showError(response.content);
       }
     });
     logger.info("Connected to agent successfully");
-    ui.addMessage("system", "✅ Connected to Gemini agent");
+    console.log(chalk.yellow.dim("│ ✅ Connected to Gemini AI"));
 
     // Create new session
     logger.info("Creating new session...");
     await client.createSession();
     const session = await sessionManager.createNewSession();
     logger.info("Session created", { sessionId: session.id });
-    ui.addMessage("system", `📝 New session created: ${session.id}`);
+    console.log(chalk.gray.dim(`│ 📝 Session ID: ${session.id}`));
 
     ui.showWelcome();
 
@@ -99,13 +104,16 @@ async function main() {
         : "Failed to connect to agent. Make sure Gemini CLI is installed and configured."
     );
 
-    ui.addMessage(
-      "system",
-      "\n💡 Tips:\n" +
-        "1. If you're not logged in, run: gemini\n" +
-        "2. Or set GEMINI_API_KEY in .env file\n" +
-        "3. Get API key at: https://aistudio.google.com/apikey\n\n" +
-        `📝 Check logs at: ${logger.getLogFile()}`
+    console.log(
+      chalk.yellow.bold("\n💡 Troubleshooting Tips:\n") +
+        chalk.yellow("   1. Make sure Gemini CLI is installed: ") +
+        chalk.white("npm install -g @google/gemini-cli\n") +
+        chalk.yellow("   2. Login to Gemini: ") +
+        chalk.white("gemini\n") +
+        chalk.yellow("   3. Or set GEMINI_API_KEY in .env file\n") +
+        chalk.yellow("   4. Get API key at: ") +
+        chalk.blue.underline("https://aistudio.google.com/apikey\n\n") +
+        chalk.gray.dim(`📝 Check detailed logs: ${logger.getLogFile()}`)
     );
 
     setTimeout(() => process.exit(1), 5000);
@@ -113,7 +121,7 @@ async function main() {
 
   async function cleanup() {
     logger.info("Cleanup started");
-    ui.addMessage("system", "👋 Saving session and disconnecting...");
+    console.log(chalk.yellow.dim("\n│ 👋 Saving session and disconnecting..."));
     await sessionManager.saveSession();
     await client.disconnect();
     logger.info("Cleanup completed");

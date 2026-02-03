@@ -30,11 +30,9 @@ async function writeLog(level: LogLevel, message: string, data?: any) {
     console.error("Failed to write log:", error);
   }
 
-  // Also write to console in development
-  if (level === LogLevel.ERROR || level === LogLevel.WARN) {
+  // Only write errors to console (keep debug in files only)
+  if (level === LogLevel.ERROR) {
     console.error(logMessage);
-  } else if (level === LogLevel.DEBUG) {
-    console.log(logMessage);
   }
 }
 
