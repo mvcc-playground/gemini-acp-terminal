@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import * as readline from "readline/promises";
 import type { AgentResponse } from "./client";
+import { renderMarkdown } from "./utils/markdown";
 
 export interface UIMessage {
   role: "user" | "agent" | "system";
@@ -66,12 +67,31 @@ export class TerminalUI {
   finishWaiting() {
     if (this.streamingContent) {
       this.messages.push({ role: "agent", content: this.streamingContent });
+
+      // Move to new line after streaming
+      console.log("");
+
+      // Clear everything after the header and re-render with markdown
+      const rendered = renderMarkdown(this.streamingContent);
+      const lines = rendered.split("\n");
+
+      // Move cursor up and clear
+      const lineCount = this.streamingContent.split("\n").length + 1;
+      for (let i = 0; i < lineCount + 1; i++) {
+        process.stdout.write("\x1b[1A\x1b[2K"); // Move up and clear line
+      }
+
+      // Re-render with formatted markdown
+      console.log(chalk.green.bold("┌─ 🤖 Gemini"));
+      lines.forEach((line) => {
+        console.log("│ " + line);
+      });
+      console.log(
+        chalk.green("└─────────────────────────────────────────────────────────────")
+      );
     }
     this.isWaitingResponse = false;
     this.streamingContent = "";
-    console.log(
-      chalk.green("\n└─────────────────────────────────────────────────────────────")
-    );
   }
 
   async setOnSubmit(callback: (message: string) => Promise<void>) {
